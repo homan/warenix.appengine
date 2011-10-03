@@ -1,0 +1,15 @@
+application: inviteyouall
+version: 5
+runtime: python
+api_version: 1
+
+handlers:
+
+- url: /assets
+  static_dir: assets
+
+- url: /_wave/.*
+  script: inviteyouall.py
+
+- url: /.*
+  script: gateway.py

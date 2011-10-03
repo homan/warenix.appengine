@@ -1,0 +1,4 @@
+cron:
+#- description: test regular monitor
+#  url: /pricewatch/monitor/wellcome/jobqueue/
+#  schedule: every 12 hours
