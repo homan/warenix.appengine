@@ -1,0 +1,261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+	<meta name="viewport" content="width=320"/>
+	<title>stock</title>
+	<script type="text/javascript" src="http://www.google.com/jsapi">
+	</script>
+
+	<style>
+		body{color:white;font-weight:bold;font-size:large;}
+		  .static{background-color:blue}
+		  .pos {background-color:green}
+		  .neg {background-color:red}
+		   th {background-color:brown; color:white; }
+
+	   #stockTable{table-layout:fixed; width:100%; }
+		 #chart_div{width:180em; height:50em;}
+		 .col0{width:;}
+		 .col1{width:;}
+		 .col2{width:;}
+		 .col3{width:1%}
+		#hsi_index_div{background-color:#FF8040; float:right}
+	   </style>
+</head>
+
+<body onload="doOnload();">
+<script type="text/javascript">
+google.load("prototype", "1.6.1.0");
+
+function doOnload(){
+	updateHSI();
+
+	stockTable.loadCookie();
+}
+
+var STOCK_CODE_TEXT_VIEW = "stockCodeText";
+var STOCK_TABLE_VIEW = "stockTable";
+
+var stockTable = new StockTable();
+function StockTable(){
+	// a hash table of the reference to PeriodicUpdater
+	// key is the stockCode
+	var stockList = new Array();
+	var stockCount = 0;
+
+	this.insertStock = function(){
+		var stockCodeTextView=document.getElementById(STOCK_CODE_TEXT_VIEW);
+		var stockCodeString = stockCodeTextView.value;
+		var segments = stockCodeString.split(" ");
+		var stockCode = "";
+
+		for (var i = 0; i < segments.length; ++i){
+			stockCode = segments[i];
+			if (stockCode.length > 0){
+				if (!(stockCode in stockList)){
+					this.doInsertStock(stockCode);
+				}
+			}
+		}
+
+		this.storeCookie();
+	}
+
+	this.storeCookie = function(){
+		var count = stockCount;
+		var s = "";
+		if (count > 0)
+		{
+			for (var stock in stockList){
+
+				s += stock;
+				--count;
+
+				if (count == 0){
+					break;
+				}
+				s+=",";
+			}
+		}
+
+		createCookie("stored", s, 30);
+	}
+
+	this.loadCookie = function(){
+		var stored = readCookie("stored");
+		if (stored == ""){
+			return;
+		}
+
+		var stockList = stored.split(",");
+
+		for (var i = 0; i <  stockList.length; ++i){
+			var stockCode = stockList[i];
+			this.doInsertStock(stockCode);
+		}
+	}
+
+	this.doInsertStock = function(stockCode){
+			var stockRow = $(STOCK_TABLE_VIEW).insertRow(-1);
+			var stockDivId = "stockDiv"+stockCode;
+			stockRow.setAttribute("id", stockDivId);
+
+
+			var nameCell = stockRow.insertCell(0);
+			var priceCell = stockRow.insertCell(1);
+			var changeCell = stockRow.insertCell(2);
+			var deleteCell = stockRow.insertCell(3);
+			deleteCell.setAttribute("class", "button");
+			deleteCell.innerHTML = "<a href=\"#\" onclick=\"stockTable.removeStock(this, " + stockCode + ");\">X</a>";
+
+			nameCell.innerHTML = stockCode;
+
+			var _this = this;
+
+			var pu = new Ajax.PeriodicalUpdater('', '/stock/quote/', {
+					   method: 'get',
+						frequency: 6,
+						 decay: 2,
+						 parameters: "stock_code=" + stockCode,
+						 onSuccess: function(transport){
+						 	var segments = transport.responseText.split("@@@");
+
+							var price = segments[0];
+							var priceChange = segments[1];
+							var priceChangePercentage = segments[2];
+							var stockName = segments[13];
+							var updateTime = segments[14];
+							var	priceChangeType = segments[12];
+							var priceRangeToday = segments[10];
+							var priceRangeYear = segments[11];
+							var volume = segments[3];
+							var turnover = segments[4];
+
+							nameCell.innerHTML = "[ " + stockCode + " ] " + stockName + "<br/>" + volume + "(" + turnover + ")<br/>" + updateTime;
+							priceCell.innerHTML = price + "<br/>" + priceRangeToday;
+
+							var priceChangeSign = "";
+							if (priceChangeType == "neg"){
+								priceChangeSign =  "-";
+							}
+							else if (priceChangeType == "pos"){
+								priceChangeSign= "+";
+							}
+							changeCell.innerHTML = priceChangeSign + priceChange + "<br/>" + priceChangeSign + priceChangePercentage;
+
+							//nameCell.innerHTML = "[ " + stockCode + " ] " + stockName + "<br/>" + priceChange + " / " + priceChangePercentage;
+							//priceCell.innerHTML = price + "<br/>" + priceRangeToday;
+							//changeCell.innerHTML = volume + " (" + turnover + ")<br/>" + updateTime;
+
+							stockRow.setAttribute("class", priceChangeType);
+							fadetext(stockDivId, 0);
+						  }
+			 }
+		   );
+
+			stockList[stockCode] = pu;
+			++stockCount;
+	}
+
+	this.removeStock = function(deleteButton, stockCode){
+		rowIndex = deleteButton.parentNode.parentNode.rowIndex;
+		$(STOCK_TABLE_VIEW).deleteRow(rowIndex);
+
+		pu = stockList[stockCode];
+		pu.stop();
+
+		stockList[stockCode]=null;
+		delete stockList[stockCode];
+		--stockCount;
+
+		this.storeCookie();
+	}
+
+	fadetext = function(div, hex){
+		if(hex < 255) {
+			hex += 11;
+			$(div).style.color="rgb("+hex+","+hex+","+hex+")";
+			setTimeout("fadetext(\"" + div + "\"," + hex + ")", 20);
+		}
+		else {
+			hex = 255;
+		}
+	}
+
+	this.stockCodeTextOnKeyDown = function(e){
+		alert(e.charCode);
+	}
+}
+
+function updateHSI(){
+			  new Ajax.PeriodicalUpdater('', '/stock/quote/', {
+					   method: 'get',
+						frequency: 6,
+						 decay: 2,
+						 //parameters: "stock_code=" + stockCode,
+						 onSuccess: function(transport){
+						 	segments = transport.responseText.split("@@@");
+
+							hsi_current = segments[0];
+							hsi_change = segments[1];
+							hsi_div = $('hsi_index_div')
+							hsi_div.innerHTML = hsi_current + " (" + hsi_change + ")";
+
+							fadetext('hsi_index_div', 0);
+						  }
+			 }
+		   );
+
+}
+
+function createCookie(name,value,days) {
+	if (days) {
+		var date = new Date();
+		date.setTime(date.getTime()+(days*24*60*60*1000));
+		var expires = "; expires="+date.toGMTString();
+	}
+	else var expires = "";
+	document.cookie = name+"="+value+expires+"; path=/";
+}
+
+function readCookie(name) {
+	var nameEQ = name + "=";
+	var ca = document.cookie.split(';');
+	for(var i=0;i < ca.length;i++) {
+		var c = ca[i];
+		while (c.charAt(0)==' ') c = c.substring(1,c.length);
+		if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+	}
+	return null;
+}
+
+function eraseCookie(name) {
+	createCookie(name,"",-1);
+}
+
+
+
+</script>
+
+	<div id="controlBar">
+		<span id="hsi_index_div">HSI</span>
+		<input id="stockCodeText" type="text" onkeydown="if(event.keyCode == 13) stockTable.insertStock();"></input>
+		<a href="#" onclick="stockTable.insertStock();">報價</a>
+	</div>
+
+
+	<div>
+<table id="stockTable" border="1">
+	<tr>
+		<th class="col0">股票</th>
+		<th class="col1">現價</th>
+		<th class="col2">升跌</th>
+		<th class="col3"></th>
+	</tr>
+</table>
+
+</body>
+
+</html>

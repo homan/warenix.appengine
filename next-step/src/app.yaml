@@ -1,0 +1,14 @@
+application: next-step
+version: 29
+runtime: python
+api_version: 1
+
+handlers:
+
+- url: /(.*\.(gif|png|jpg|xml|css|htm|html|js))
+  static_files: static/\1
+  upload: static/(.*\.(gif|png|jpg|xml|css|htm|html|js))
+
+- url: /.*
+  script: gateway.py
+

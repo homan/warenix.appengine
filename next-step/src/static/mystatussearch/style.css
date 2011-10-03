@@ -1,0 +1,22 @@
+body {
+	font: Arial, Helvetica, sans-serif normal 10px;
+	background: #ffffff;
+}
+/* draw a border line around an element */
+/*.frame {padding: 1px 1px 1px 1px;border: 1px solid black;*/
+		 }
+.search input, .search button {
+	border: none;
+}
+.search input.box{color: black;font-size: 1.2em;padding: 8px 5px 0;width: 180px;height: 40px;border: 3px solid #fbc900;margin-right: 5px;}
+.search button.btn {width: 38px;height: 38px;cursor: pointer;background: url(/mystatussearch/gtk-search.png) no-repeat bottom ;float:right;}
+.search {float: right;}
+/*------- search result ----------------*/.content ul {list-style-type:none;}
+.content li {        padding: 15px 15px 15px 15px;margin-left:30px;}
+.result{width: 500px;margin-bottom:10px;}
+.result .avatar {/*margin:  0 15px 5px 0;*//*float: left;*/left:25px;position:absolute;}
+.post_date {color: black;display: block;}
+/*the status message written by users*/.message{line-height: 1.2em;word-spacing: 1ex;}
+#logo {background: url(mystatussearch.png) no-repeat ;width: 256px;height: 64px;margin-left: auto;margin-right: auto;display:none;}
+#search_form {width: 360px;height: 48px;margin-left: 0px;margin-right: auto;}
+#search_field {float:right;}
